@@ -40,7 +40,7 @@ jobs:
           sudo apt-get install migrate
           which migrate
       - name: run migration
-        run: make migrateup
+        run: make migrationup
 
       - name: Test
         run: make test

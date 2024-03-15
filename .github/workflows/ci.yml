@@ -7,8 +7,21 @@ on:
     branches: ["master"]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_DB: tech_school_course
+          POSTFRES_USER: postgres
+          POSTGRES_PASSWORD: 147563
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v3
 
@@ -17,6 +30,9 @@ jobs:
         with:
           go-version: "1.21"
         id: go
+
+      - name: run magration
+        run: make migrateup
 
       - name: Test
         run: make test

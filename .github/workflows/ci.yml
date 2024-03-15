@@ -16,6 +16,8 @@ jobs:
           POSTGRES_DB: tech_school_course
           POSTFRES_USER: postgres
           POSTGRES_PASSWORD: 147563
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -35,8 +37,9 @@ jobs:
       - run: |
           curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
           sudo mv migrate.linux-amd64 /usr/local/bin/migrate
-        
-      - name: run magration
+          which migrate
+
+      - name: run migration
         run: make migrateup
 
       - name: Test

@@ -23,7 +23,6 @@ func RandomString(n int) string {
 	return string(b)
 }
 
-
 func RandomOwner() string {
 	return RandomString(6)
 }
@@ -33,6 +32,6 @@ func RandomMonney() int64 {
 }
 
 func RandomCurrencies() string {
-	currency := []string{"EUR", "USD", "CAD"}
+	currency := []string{EUR, USD, CAD}
 	return currency[rand.Intn(len(currency))]
 }

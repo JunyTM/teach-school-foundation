@@ -7,13 +7,19 @@ import (
 )
 
 // store provides all func to execute db queries and transactions
-type Store struct {
+type Store interface {
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferResult, error)
+}
+
+// store provides all func to execute db queries and transactions
+type SQLStore struct {
 	*Queries
 	db *sql.DB
 }
 
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
@@ -21,7 +27,7 @@ func NewStore(db *sql.DB) *Store {
 }
 
 // execTx executes a function within a database transaction
-func (s *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
+func (s *SQLStore) execTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := s.db.BeginTx(ctx, nil) // Parameter 2 to set Options allowing for Isolation Level, ReadOnly, etc.
 	if err != nil {
 		return err
@@ -56,7 +62,7 @@ type TransferResult struct {
 // var txKey = struct{}{}
 
 // Transfer preforms a mone transfer from one account to the other
-func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferResult, error) {
+func (s *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferResult, error) {
 	var result TransferResult
 	err := s.execTx(ctx, func(q *Queries) error {
 		var err error
@@ -90,45 +96,6 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferR
 		if err != nil {
 			return err
 		}
-		// Lession #6: Use DB Transactions
-		// fmt.Println(txName, "get account 1")
-		// account1, err := q.GetAccountForUpdate(ctx, arg.FromAccountID) // Get the From Account
-		// if err != nil {
-		// 	return err
-		// }
-		// // fmt.Println(txName, "update account 1")
-		// result.FromAccount, err = q.UpdateAccount(ctx, UpdateAccountParams{ // Update the From Account
-		// 	ID:      arg.FromAccountID,
-		// 	Balance: account1.Balance - arg.Amount,
-		// })
-		// ==> other way to update the account balance
-		// result.FromAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
-		// 	ID:     arg.FromAccountID,
-		// 	Amount: -arg.Amount,
-		// })
-		// if err != nil {
-		// 	return err
-		// }
-
-		// fmt.Println(txName, "get account 2")
-		// account2, err := q.GetAccountForUpdate(ctx, arg.ToAccountID) // Get the From Account
-		// if err != nil {
-		// 	return err
-		// }
-		// // fmt.Println(txName, "update account 2")
-		// result.ToAccount, err = q.UpdateAccount(ctx, UpdateAccountParams{ // Update the From Account
-		// 	ID:      arg.ToAccountID,
-		// 	Balance: account2.Balance + arg.Amount,
-		// })
-		// result.ToAccount, err = q.AddAccountBalance(ctx, AddAccountBalanceParams{
-		// 	ID:     arg.ToAccountID,
-		// 	Amount: arg.Amount,
-		// })
-		// if err != nil {
-		// 	return err
-		// }
-
-		// Lession #8: Avoid Deadlock
 		if arg.FromAccountID < arg.ToAccountID {
 			result.FromAccount, result.ToAccount, err = addMoney(ctx, s, arg.FromAccountID, -arg.Amount, arg.ToAccountID, arg.Amount)
 		} else {
@@ -144,19 +111,19 @@ func (s *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferR
 }
 
 func addMoney(
-	ctx context.Context, 
-	s *Store, fromAccountID int64,
+	ctx context.Context,
+	s *SQLStore, fromAccountID int64,
 	fromAmount int64,
-	toAccountID int64, 
+	toAccountID int64,
 	toAmount int64,
-	) (fromAccount Account, toAccount Account, err error) {
+) (fromAccount Account, toAccount Account, err error) {
 	fromAccount, err = s.AddAccountBalance(ctx, AddAccountBalanceParams{
 		ID:     fromAccountID,
 		Amount: fromAmount,
 	})
-	if err!= nil {
-        return
-    }
+	if err != nil {
+		return
+	}
 
 	toAccount, err = s.AddAccountBalance(ctx, AddAccountBalanceParams{
 		ID:     toAccountID,

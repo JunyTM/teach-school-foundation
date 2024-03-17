@@ -10,4 +10,10 @@ sqlc:
 test:
 	go test -v -cover ./...
 
-.PHONY: migrationup migrationdown sqlc
+server:
+	go run main.go
+
+mock: 
+	mockgen -package mockdb -destination db/mock/store.go simplebank/db/sqlc Store
+
+.PHONY: migrationup migrationdown sqlc test server mockgen
